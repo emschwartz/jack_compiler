@@ -1,4 +1,4 @@
-use num_enum::TryFromPrimitive;
+use std::convert::TryFrom;
 
 pub const SYMBOLS: &'static [char] = &[
   '{', '}', '(', ')', '[', ']', '.', ',', ';', '+', '-', '*', '/', '&', '|', '<', '>', '=', '~',
@@ -89,7 +89,7 @@ impl Keyword {
   }
 }
 
-#[derive(Debug, PartialEq, TryFromPrimitive)]
+#[derive(Debug, PartialEq)]
 #[repr(u8)]
 pub enum Symbol {
   CurlyOpen = b'{',
@@ -107,8 +107,38 @@ pub enum Symbol {
   Slash = b'/',
   Ampersand = b'&',
   VerticalBar = b'|',
-  AngleOpen = b'<',
-  AngleClose = b'>',
+  LessThan = b'<',
+  GreaterThan = b'>',
   Equals = b'=',
   Tilde = b'~',
+}
+
+impl TryFrom<char> for Symbol {
+  type Error = &'static str;
+
+  fn try_from(c: char) -> Result<Symbol, Self::Error> {
+    let symbol = match c {
+      '{' => Symbol::CurlyOpen,
+      '}' => Symbol::CurlyClose,
+      '(' => Symbol::ParenOpen,
+      ')' => Symbol::ParenClose,
+      '[' => Symbol::BracketOpen,
+      ']' => Symbol::BracketClose,
+      '.' => Symbol::Period,
+      ',' => Symbol::Comma,
+      ';' => Symbol::Semicolon,
+      '+' => Symbol::Plus,
+      '-' => Symbol::Minus,
+      '*' => Symbol::Asterix,
+      '/' => Symbol::Slash,
+      '&' => Symbol::Ampersand,
+      '|' => Symbol::VerticalBar,
+      '<' => Symbol::LessThan,
+      '>' => Symbol::GreaterThan,
+      '=' => Symbol::Equals,
+      '~' => Symbol::Tilde,
+      _ => return Err("Invalid symbol"),
+    };
+    Ok(symbol)
+  }
 }

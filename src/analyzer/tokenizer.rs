@@ -34,7 +34,7 @@ pub fn tokenize_line<'a>(line: String) -> Vec<Token> {
       start += end;
     } else if SYMBOLS.contains(&next_char) {
       // Symbol
-      tokens.push(Token::Symbol(Symbol::try_from(next_char as u8).unwrap()));
+      tokens.push(Token::Symbol(Symbol::try_from(next_char).unwrap()));
       start += 1;
     } else if !next_char.is_whitespace() {
       let mut is_keyword = false;
