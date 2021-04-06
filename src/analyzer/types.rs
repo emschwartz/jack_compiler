@@ -1,10 +1,9 @@
 use num_enum::TryFromPrimitive;
 
-pub(crate) const SYMBOLS: &'static [char] = &[
+pub const SYMBOLS: &'static [char] = &[
   '{', '}', '(', ')', '[', ']', '.', ',', ';', '+', '-', '*', '/', '&', '|', '<', '>', '=', '~',
 ];
-
-pub(crate) const KEYWORDS: &[Keyword] = &[
+pub const KEYWORDS: &[Keyword] = &[
   Keyword::Class,
   Keyword::Constructor,
   Keyword::Function,
@@ -29,16 +28,16 @@ pub(crate) const KEYWORDS: &[Keyword] = &[
 ];
 
 #[derive(Debug)]
-pub(crate) enum Token<'a> {
+pub enum Token {
   Keyword(Keyword),
   Symbol(Symbol),
   IntegerConstant(u16),
-  StringConstant(&'a str),
-  Identifier(&'a str),
+  StringConstant(String),
+  Identifier(String),
 }
 
 #[derive(Debug, PartialEq, Clone, Copy)]
-pub(crate) enum Keyword {
+pub enum Keyword {
   Class,
   Constructor,
   Function,
@@ -88,65 +87,11 @@ impl Keyword {
       Keyword::Return => "return",
     }
   }
-
-  // fn from_str_start(string: &str) -> Option<(Keyword, &str)> {
-  //   if string.starts_with(Keyword::Class.as_str()) {
-  //     Some(Keyword::Class, &string[Keyword::Class.as_str().len()..])
-  //   } else if string.starts_with(Keyword::Constructor.as_str()) {
-  //     Some(
-  //       Keyword::Constructor,
-  //       &string[Keyword::Constructor.as_str().len()..],
-  //     )
-  //   } else if string.starts_with(Keyword::Function.as_str()) {
-  //     Some(
-  //       Keyword::Function,
-  //       &string[Keyword::Function.as_str().len()..],
-  //     )
-  //   } else if string.starts_with(Keyword::Method.as_str()) {
-  //     Some(Keyword::Method, &string[Keyword::Method.as_str().len()..])
-  //   } else if string.starts_with(Keyword::Field.as_str()) {
-  //     Some(Keyword::Field, &string[Keyword::Field.as_str().len()..])
-  //   } else if string.starts_with(Keyword::Static.as_str()) {
-  //     Some(Keyword::Static, &string[Keyword::Static.as_str().len()..])
-  //   } else if string.starts_with(Keyword::Var.as_str()) {
-  //     Some(Keyword::Var, &string[Keyword::Var.as_str().len()..])
-  //   } else if string.starts_with(Keyword::Int.as_str()) {
-  //     Some(Keyword::Int, &string[Keyword::Int.as_str().len()..])
-  //   } else if string.starts_with(Keyword::Char.as_str()) {
-  //     Some(Keyword::Char, &string[Keyword::Char.as_str().len()..])
-  //   } else if string.starts_with(Keyword::Boolean.as_str()) {
-  //     Some(Keyword::Boolean, &string[Keyword::Boolean.as_str().len()..])
-  //   } else if string.starts_with(Keyword::Void.as_str()) {
-  //     Some(Keyword::Void, &string[Keyword::Void.as_str().len()..])
-  //   } else if string.starts_with(Keyword::True.as_str()) {
-  //     Some(Keyword::True, &string[Keyword::True.as_str().len()..])
-  //   } else if string.starts_with(Keyword::False.as_str()) {
-  //     Some(Keyword::False, &string[Keyword::False.as_str().len()..])
-  //   } else if string.starts_with(Keyword::Null.as_str()) {
-  //     Some(Keyword::Null, &string[Keyword::Null.as_str().len()..])
-  //   } else if string.starts_with(Keyword::This.as_str()) {
-  //     Some(Keyword::This, &string[Keyword::This.as_str().len()..])
-  //   } else if string.starts_with(Keyword::Let.as_str()) {
-  //     Some(Keyword::Let, &string[Keyword::Let.as_str().len()..])
-  //   } else if string.starts_with(Keyword::Do.as_str()) {
-  //     Some(Keyword::Do, &string[Keyword::Do.as_str().len()..])
-  //   } else if string.starts_with(Keyword::If.as_str()) {
-  //     Some(Keyword::If, &string[Keyword::If.as_str().len()..])
-  //   } else if string.starts_with(Keyword::Else.as_str()) {
-  //     Some(Keyword::Else, &string[Keyword::Else.as_str().len()..])
-  //   } else if string.starts_with(Keyword::While.as_str()) {
-  //     Some(Keyword::While, &string[Keyword::While.as_str().len()..])
-  //   } else if string.starts_with(Keyword::Return.as_str()) {
-  //     Some(Keyword::Return, &string[Keyword::Return.as_str().len()..])
-  //   } else {
-  //     None
-  //   }
-  // }
 }
 
 #[derive(Debug, PartialEq, TryFromPrimitive)]
 #[repr(u8)]
-pub(crate) enum Symbol {
+pub enum Symbol {
   CurlyOpen = b'{',
   CurlyClose = b'}',
   ParenOpen = b'(',
