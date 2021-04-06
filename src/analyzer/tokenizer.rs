@@ -4,10 +4,32 @@ use std::iter::Iterator;
 use std::str::FromStr;
 
 pub fn tokenize_lines<'a>(lines: impl Iterator<Item = String>) -> impl Iterator<Item = Token> {
-  lines.flat_map(|line| tokenize_line(line).into_iter())
+  let mut is_multiline_comment = false;
+  lines
+    .filter_map(move |line| {
+      if is_multiline_comment {
+        // Multi-line comment close
+        if let Some(index) = line.find("*/") {
+          is_multiline_comment = false;
+          Some(line[(index + 1)..].to_string())
+        } else {
+          None
+        }
+      } else {
+        // Multi-line comment open
+        if line.contains("/*") && !line.contains("*/") {
+          let index = line.find("/*").unwrap();
+          is_multiline_comment = true;
+          return Some(line[..index].to_string());
+        } else {
+          Some(line)
+        }
+      }
+    })
+    .flat_map(|line| tokenize_line(line).into_iter())
 }
 
-pub fn tokenize_line<'a>(line: String) -> Vec<Token> {
+fn tokenize_line<'a>(line: String) -> Vec<Token> {
   let mut tokens = Vec::new();
   let mut start = 0;
   while start < line.len() {
