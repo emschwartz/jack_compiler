@@ -7,7 +7,7 @@ mod compilation_engine;
 mod tokenizer;
 mod types;
 
-use tokenizer::tokenize_lines;
+use tokenizer::tokenize;
 use types::Token;
 
 pub fn read_input(filename: &str) {
@@ -34,6 +34,6 @@ fn read_file(path: &Path) -> impl Iterator<Item = Token> {
   let file = File::open(path).expect(&format!("Cannot open file: {}", path.to_str().unwrap()));
   let reader = BufReader::new(file);
   let lines = reader.lines().filter_map(|line| line.ok());
-  let tokens = tokenize_lines(lines);
+  let tokens = tokenize(lines);
   tokens
 }
