@@ -3,6 +3,8 @@ use std::convert::TryFrom;
 use std::iter::Iterator;
 use std::str::FromStr;
 
+const MAX_INT: u16 = 32767;
+
 pub fn tokenize<'a>(lines: impl Iterator<Item = String>) -> impl Iterator<Item = Token> {
   let mut is_comment_block = false;
   lines.flat_map(move |line| {
@@ -40,6 +42,9 @@ pub fn tokenize<'a>(lines: impl Iterator<Item = String>) -> impl Iterator<Item =
         // Integer constant
         let end = 1 + &substr[1..].find(|c: char| !c.is_numeric()).unwrap();
         let int = u16::from_str(&substr[..end]).expect("Cannot parse integer constant");
+        if int > MAX_INT {
+          panic!(format!("Integer constant {} exceeds max value", int));
+        }
         tokens.push(Token::IntegerConstant(int));
         start += end;
       } else if SYMBOLS.contains(&next_char) {
