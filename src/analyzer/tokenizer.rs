@@ -23,33 +23,38 @@ pub fn tokenize_line<'a>(line: String) -> Vec<Token> {
       start += end + 2;
     } else if next_char == '"' {
       // String constant
-      let end = substr.find('"').expect("Unclosed string literal");
+      let end = 1 + &substr[1..].find('"').expect("Unclosed string literal");
       tokens.push(Token::StringConstant(substr[..end].to_string()));
       start += end + 1;
     } else if next_char.is_numeric() {
       // Integer constant
-      let end = substr.find(|c: char| !c.is_numeric()).unwrap();
+      let end = 1 + &substr[1..].find(|c: char| !c.is_numeric()).unwrap();
       let int = u16::from_str(&substr[..end]).expect("Cannot parse integer constant");
       tokens.push(Token::IntegerConstant(int));
       start += end;
-    } else if SYMBOLS.contains(&substr.chars().next().unwrap()) {
+    } else if SYMBOLS.contains(&next_char) {
       // Symbol
       tokens.push(Token::Symbol(Symbol::try_from(next_char as u8).unwrap()));
       start += 1;
     } else if !next_char.is_whitespace() {
+      let mut is_keyword = false;
       for variant in KEYWORDS {
         // Keyword
         if substr.starts_with(variant.as_str()) {
           tokens.push(Token::Keyword(*variant));
           start += variant.as_str().len();
-        } else {
-          // Identifier
-          let end = substr
-            .find(|c: char| !c.is_alphanumeric() && c != '_')
-            .unwrap_or(substr.len());
-          tokens.push(Token::Identifier(substr[..end].to_string()));
-          start += end;
+          is_keyword = true;
+          break;
         }
+      }
+      // Identifier
+      if !is_keyword {
+        let end = 1
+          + &substr[1..]
+            .find(|c: char| !c.is_alphanumeric() && c != '_')
+            .unwrap_or(substr.len() - 1);
+        tokens.push(Token::Identifier(substr[..end].to_string()));
+        start += end;
       }
     } else {
       start += 1;
