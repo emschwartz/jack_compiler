@@ -36,14 +36,14 @@ pub fn tokenize<'a>(lines: impl Iterator<Item = String>) -> impl Iterator<Item =
       } else if next_char == '"' {
         // String constant
         let end = 1 + &substr[1..].find('"').expect("Unclosed string literal");
-        tokens.push(Token::StringConstant(substr[..end].to_string()));
+        tokens.push(Token::StringConstant(substr[1..end].to_string()));
         start += end + 1;
       } else if next_char.is_numeric() {
         // Integer constant
         let end = 1 + &substr[1..].find(|c: char| !c.is_numeric()).unwrap();
         let int = u16::from_str(&substr[..end]).expect("Cannot parse integer constant");
         if int > MAX_INT {
-          panic!(format!("Integer constant {} exceeds max value", int));
+          panic!("Integer exceeds max value");
         }
         tokens.push(Token::IntegerConstant(int));
         start += end;

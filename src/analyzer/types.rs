@@ -1,5 +1,9 @@
 use std::convert::TryFrom;
 
+pub trait ToXml {
+  fn to_xml(&self) -> String;
+}
+
 pub const SYMBOLS: &'static [char] = &[
   '{', '}', '(', ')', '[', ']', '.', ',', ';', '+', '-', '*', '/', '&', '|', '<', '>', '=', '~',
 ];
@@ -34,6 +38,26 @@ pub enum Token {
   IntegerConstant(u16),
   StringConstant(String),
   Identifier(String),
+}
+
+impl ToXml for Token {
+  fn to_xml(&self) -> String {
+    match self {
+      Token::Keyword(keyword) => keyword.to_xml(),
+      Token::Symbol(symbol) => symbol.to_xml(),
+      Token::IntegerConstant(integer) => format!("<integerConstant> {} </integerConstant>", integer),
+      Token::StringConstant(string) => format!("<stringConstant> {} </stringConstant>", string),
+      Token::Identifier(identifier) => format!("<identifier> {} </identifier>", identifier)
+    }
+  }
+}
+
+impl ToXml for Vec<Token> {
+  fn to_xml(&self) -> String {
+      format!("<tokens>
+{}
+</tokens>", self.iter().map(|t| t.to_xml()).collect::<Vec<String>>().join("\n"))
+  }
 }
 
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -89,7 +113,13 @@ impl Keyword {
   }
 }
 
-#[derive(Debug, PartialEq)]
+impl ToXml for Keyword {
+  fn to_xml(&self) -> String {
+      format!("<keyword> {} </keyword>", self.as_str())
+  }
+}
+
+#[derive(Debug, PartialEq, Clone, Copy)]
 #[repr(u8)]
 pub enum Symbol {
   CurlyOpen = b'{',
@@ -140,5 +170,17 @@ impl TryFrom<char> for Symbol {
       _ => return Err("Invalid symbol"),
     };
     Ok(symbol)
+  }
+}
+
+impl ToXml for Symbol {
+  fn to_xml(&self) -> String {
+    let repr = match self {
+      Symbol::LessThan => String::from("&lt;"),
+      Symbol::GreaterThan => String::from("&gt;"),
+      Symbol::Ampersand => String::from("&amp;"),
+      _ => char::from(*self as u8).to_string()
+    };
+    format!("<symbol> {} </symbol>", repr)
   }
 }
