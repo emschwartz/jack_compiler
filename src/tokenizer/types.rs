@@ -1,8 +1,5 @@
 use std::convert::TryFrom;
-
-pub trait ToXml {
-  fn to_xml(&self) -> String;
-}
+use crate::ToXml;
 
 pub const SYMBOLS: &'static [char] = &[
   '{', '}', '(', ')', '[', ']', '.', ',', ';', '+', '-', '*', '/', '&', '|', '<', '>', '=', '~',
@@ -31,7 +28,7 @@ pub const KEYWORDS: &[Keyword] = &[
   Keyword::Return,
 ];
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Token {
   Keyword(Keyword),
   Symbol(Symbol),
