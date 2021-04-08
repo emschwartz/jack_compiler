@@ -1,4 +1,4 @@
-use jack_compiler::{ToXml, tokenizer::{tokenize, types::Token}};
+use jack_compiler::{ToXml, tokenizer::{tokenize, Token}};
 use std::env;
 use std::fs::{File};
 use std::io::{BufRead, BufReader, Write};

@@ -1,6 +1,6 @@
 use std::iter::Peekable;
 
-use crate::tokenizer::types::{Token, Keyword, Symbol};
+use crate::tokenizer::{Token, Keyword, Symbol};
 use super::types::*;
 
 pub struct Parser<I: Iterator<Item = Token>> {
