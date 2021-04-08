@@ -1,5 +1,5 @@
 mod parser;
 mod types;
 
-pub use parser::Parser;
+pub use parser::parse;
 pub use types::*;

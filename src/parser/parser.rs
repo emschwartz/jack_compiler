@@ -3,14 +3,19 @@ use std::iter::Peekable;
 use crate::tokenizer::{Token, Keyword, Symbol};
 use super::types::*;
 
-pub struct Parser<I: Iterator<Item = Token>> {
+pub fn parse<I: Iterator<Item = Token>>(tokens: I) -> Result<Class, String> {
+  let mut parser = Parser::new(tokens);
+  parser.compile_class()
+}
+
+struct Parser<I: Iterator<Item = Token>> {
   tokens: Peekable<I>,
 }
 
 impl<I> Parser<I>
 where I: Iterator<Item = Token>
  {
-  pub fn new(tokens: I) -> Parser<I> {
+  fn new(tokens: I) -> Parser<I> {
     Parser {
       tokens: tokens.peekable()
     }
@@ -44,9 +49,10 @@ where I: Iterator<Item = Token>
     }
   }
 
-  pub fn compile_class(&mut self) -> Result<Class, String> {
+  fn compile_class(&mut self) -> Result<Class, String> {
     self.expect_token(Token::Keyword(Keyword::Class))?;
     let class_name = self.expect_identifier()?;
+    dbg!("class", &class_name);
     self.expect_token(Token::Symbol(Symbol::CurlyOpen))?;
     let class_var_declarations = self.compile_class_var_declarations()?;
     let subroutine_declarations = self.compile_subroutine_declarations()?;
@@ -76,6 +82,7 @@ where I: Iterator<Item = Token>
       Some(Token::Keyword(Keyword::Field)) => StaticOrField::Field,
       _ => return Err(String::from("Expected keyword: 'static' or 'field'")),
     };
+    dbg!("class var declaration", static_or_field);
     let var_type = self.expect_var_type()?;
     let mut var_names = vec![self.expect_identifier()?];
     while let Some(&Token::Symbol(Symbol::Comma)) = self.tokens.peek() {
@@ -92,6 +99,7 @@ where I: Iterator<Item = Token>
   }
 
   fn compile_subroutine_declarations(&mut self) -> Result<Vec<SubroutineDeclaration>, String> {
+    dbg!("subroutines");
     let mut declarations = Vec::new();
     loop {
       let next = self.tokens.peek();
@@ -123,6 +131,7 @@ where I: Iterator<Item = Token>
     };
 
     let name = self.expect_identifier()?;
+    dbg!("subroutine", &name);
     self.expect_token(Token::Symbol(Symbol::ParenOpen))?;
     let parameter_list = self.compile_parameter_list()?;
     self.expect_token(Token::Symbol(Symbol::ParenClose))?;
@@ -163,6 +172,7 @@ where I: Iterator<Item = Token>
   }
 
   fn compile_subroutine_body(&mut self) -> Result<SubroutineBody, String> {
+    dbg!("subroutine body");
     self.expect_token(Token::Symbol(Symbol::CurlyOpen))?;
     let var_declarations = self.compile_var_declarations()?;
     let statements = self.compile_statements()?;
@@ -174,6 +184,7 @@ where I: Iterator<Item = Token>
   }
 
   fn compile_var_declarations(&mut self) -> Result<Vec<VarDeclaration>, String> {
+    dbg!("var delcarations");
     let mut declarations = Vec::new();
     while self.tokens.peek() == Some(&Token::Keyword(Keyword::Var)) {
       self.tokens.next();
@@ -195,6 +206,7 @@ where I: Iterator<Item = Token>
 
   fn compile_statements(&mut self) -> Result<Vec<Statement>, String> {
     let mut statements = Vec::new();
+    dbg!("statements");
 
     loop {
       let statement = match self.tokens.peek() {
@@ -212,6 +224,7 @@ where I: Iterator<Item = Token>
   }
 
   fn compile_let_statement(&mut self) -> Result<LetStatement, String> {
+    dbg!("let");
     self.expect_token(Token::Keyword(Keyword::Let))?;
     let var_name = self.expect_identifier()?;
 
@@ -236,6 +249,7 @@ where I: Iterator<Item = Token>
   }
 
   fn compile_if_statement(&mut self) -> Result<IfStatement, String> {
+    dbg!("if");
     self.expect_token(Token::Keyword(Keyword::If))?;
     self.expect_token(Token::Symbol(Symbol::ParenOpen))?;
     let expression = self.compile_expression()?;
@@ -262,6 +276,7 @@ where I: Iterator<Item = Token>
   }
 
   fn compile_while_statement(&mut self) -> Result<WhileStatement, String> {
+    dbg!("while");
     self.expect_token(Token::Keyword(Keyword::While))?;
     self.expect_token(Token::Symbol(Symbol::ParenOpen))?;
     let expression = self.compile_expression()?;
@@ -276,11 +291,13 @@ where I: Iterator<Item = Token>
   }
 
   fn compile_do_statement(&mut self) -> Result<DoStatement, String> {
+    dbg!("do");
     self.expect_token(Token::Keyword(Keyword::Do))?;
     Ok(DoStatement(self.compile_subroutine_call()?))
   }
 
   fn compile_return_statement(&mut self) -> Result<ReturnStatement, String> {
+    dbg!("return");
     self.expect_token(Token::Keyword(Keyword::Return))?;
     let expression = match self.tokens.peek() {
       Some(Token::Symbol(Symbol::Semicolon)) => None,
