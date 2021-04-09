@@ -336,30 +336,44 @@ where
         let mut ops = Vec::new();
         loop {
             match self.tokens.peek() {
-                Some(&Token::Symbol(Symbol::Plus)) => ops.push((Op::Plus, self.compile_term()?)),
-                Some(&Token::Symbol(Symbol::Minus)) => ops.push((Op::Minus, self.compile_term()?)),
+                Some(&Token::Symbol(Symbol::Plus)) => {
+                    self.tokens.next();
+                    ops.push((Op::Plus, self.compile_term()?))
+                }
+                Some(&Token::Symbol(Symbol::Minus)) => {
+                    self.tokens.next();
+                    ops.push((Op::Minus, self.compile_term()?))
+                }
                 Some(&Token::Symbol(Symbol::Asterix)) => {
+                    self.tokens.next();
                     ops.push((Op::Asterix, self.compile_term()?))
                 }
-                Some(&Token::Symbol(Symbol::Slash)) => ops.push((Op::Slash, self.compile_term()?)),
+                Some(&Token::Symbol(Symbol::Slash)) => {
+                    self.tokens.next();
+                    ops.push((Op::Slash, self.compile_term()?))
+                }
                 Some(&Token::Symbol(Symbol::Ampersand)) => {
+                    self.tokens.next();
                     ops.push((Op::Ampersand, self.compile_term()?))
                 }
                 Some(&Token::Symbol(Symbol::VerticalBar)) => {
+                    self.tokens.next();
                     ops.push((Op::VerticalBar, self.compile_term()?))
                 }
                 Some(&Token::Symbol(Symbol::LessThan)) => {
+                    self.tokens.next();
                     ops.push((Op::LessThan, self.compile_term()?))
                 }
                 Some(&Token::Symbol(Symbol::GreaterThan)) => {
+                    self.tokens.next();
                     ops.push((Op::GreaterThan, self.compile_term()?))
                 }
                 Some(&Token::Symbol(Symbol::Equals)) => {
+                    self.tokens.next();
                     ops.push((Op::Equals, self.compile_term()?))
                 }
                 _ => break,
             }
-            self.tokens.next();
         }
         Ok(Expression { term, ops })
     }
@@ -383,7 +397,7 @@ where
             Token::Identifier(var_name) => match self.tokens.peek() {
               // varName[expression]
               Some(&Token::Symbol(Symbol::BracketOpen)) => {
-                self.expect_token(Token::Symbol(Symbol::BracketOpen))?;
+                self.tokens.next();
                 let expression = self.compile_expression()?;
                 self.expect_token(Token::Symbol(Symbol::BracketClose))?;
                 Term::VarNameExpression((var_name, Box::new(expression)))
@@ -397,7 +411,6 @@ where
             },
             // (expression)
             Token::Symbol(Symbol::ParenOpen) => {
-                self.expect_token(Token::Symbol(Symbol::ParenOpen))?;
                 let expression = self.compile_expression()?;
                 self.expect_token(Token::Symbol(Symbol::ParenClose))?;
                 Term::Expression(Box::new(expression))
