@@ -282,9 +282,9 @@ where
             self.expect_token(Token::Symbol(Symbol::CurlyOpen))?;
             let statements = self.compile_statements()?;
             self.expect_token(Token::Symbol(Symbol::CurlyClose))?;
-            statements
+            Some(statements)
         } else {
-            Vec::new()
+            None
         };
 
         Ok(IfStatement {

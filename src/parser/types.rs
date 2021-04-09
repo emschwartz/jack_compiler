@@ -65,7 +65,7 @@ impl ToXml for VarType {
         match self {
             VarType::Int => String::from("<keyword> int </keyword>"),
             VarType::Char => String::from("<keyword> char </keyword>"),
-            VarType::Boolean => String::from("<keyword> bool </keyword>"),
+            VarType::Boolean => String::from("<keyword> boolean </keyword>"),
             VarType::ClassName(class_name) => class_name.to_xml(),
         }
     }
@@ -80,14 +80,13 @@ pub struct ClassVarDeclaration {
 impl ToXml for ClassVarDeclaration {
     fn to_xml(&self) -> String {
         let mut var_names = intersperse_with(&self.var_names, ", ");
-        var_names.push_str("\n<symbol> ; </symbol>\n");
+        var_names.push_str("\n<symbol> ; </symbol>");
 
         format!(
             "<classVarDec>
   {}
   {}
   {}
-  <symbol> ; </symbol>
 </classVarDec>",
             self.static_or_field.to_xml(),
             self.var_type.to_xml(),
@@ -123,17 +122,23 @@ pub type Parameter = (VarType, ParameterName);
 
 impl ToXml for Vec<Parameter> {
     fn to_xml(&self) -> String {
-        let parameters = self
-            .iter()
-            .map(|p| format!("{}\n{}\n", p.0.to_xml(), p.1.to_xml()))
-            .collect::<Vec<String>>();
-        let parameters = parameters.join(", ");
-        format!(
+        if self.is_empty() {
             "<parameterList>
+</parameterList>"
+                .to_string()
+        } else {
+            let parameters = self
+                .iter()
+                .map(|p| format!("{}\n{}\n", p.0.to_xml(), p.1.to_xml()))
+                .collect::<Vec<String>>();
+            let parameters = parameters.join(", ");
+            format!(
+                "<parameterList>
   {}
 </parameterList>",
-            parameters
-        )
+                parameters
+            )
+        }
     }
 }
 
@@ -184,10 +189,11 @@ pub struct SubroutineBody {
 impl ToXml for SubroutineBody {
     fn to_xml(&self) -> String {
         format!(
-            "{{
-  {}
-  {}
-}}",
+            "<subroutineBody>
+<symbol> {{ </symbol>{}
+{}
+<symbol> }} </symbol>
+</subroutineBody>",
             self.var_declarations.to_xml(),
             self.statements.to_xml()
         )
@@ -203,18 +209,24 @@ impl ToXml for VarDeclaration {
     fn to_xml(&self) -> String {
         format!(
             "<varDec>
+<keyword> var </keyword>
   {}
   {}
-</varDec>",
+<symbol> ; </symbol>
+</varDec>
+",
             self.var_type.to_xml(),
-            intersperse_with(&self.var_names, ", ")
+            intersperse_with(&self.var_names, "\n<symbol> , </symbol>\n")
         )
     }
 }
 
 impl ToXml for Vec<VarDeclaration> {
     fn to_xml(&self) -> String {
-        intersperse_with(&self, "\n")
+        self.iter()
+            .map(|v| v.to_xml())
+            .collect::<Vec<String>>()
+            .join("")
     }
 }
 
@@ -280,35 +292,40 @@ impl ToXml for LetStatement {
 pub struct IfStatement {
     pub expression: Expression,
     pub if_statements: Vec<Statement>,
-    pub else_statements: Vec<Statement>,
+    pub else_statements: Option<Vec<Statement>>,
 }
 
 impl ToXml for IfStatement {
     fn to_xml(&self) -> String {
-        let else_statements = if self.else_statements.is_empty() {
-            String::new()
-        } else {
+        let else_statements = if let Some(else_statements) = &self.else_statements {
             format!(
                 "<keyword> else </keyword>
 <symbol> {{ </symbol>
 {}
-</symbol> }} </symbol>",
-                self.else_statements.to_xml()
+<symbol> }} </symbol>
+",
+                else_statements.to_xml()
             )
+        } else {
+            String::new()
         };
 
         format!(
             "<ifStatement>
+<keyword> if </keyword>
   <symbol> ( </symbol>
   {}
   <symbol> ) </symbol>
   <symbol> {{ </symbol>
   {}
   <symbol> }} </symbol>
-</ifStatement>
-{}",
+{}</ifStatement>",
             self.expression.to_xml(),
-            self.if_statements.to_xml(),
+            if self.if_statements.is_empty() {
+                String::new()
+            } else {
+                self.if_statements.to_xml()
+            },
             else_statements
         )
     }
@@ -342,9 +359,11 @@ pub struct DoStatement(pub SubroutineCall);
 impl ToXml for DoStatement {
     fn to_xml(&self) -> String {
         format!(
-            "<keyword> do </keyword>
+            "<doStatement>
+<keyword> do </keyword>
 {}
-<symbol> ; </symbol>",
+<symbol> ; </symbol>
+</doStatement>",
             self.0.to_xml()
         )
     }
@@ -375,14 +394,17 @@ pub struct Expression {
 
 impl ToXml for Expression {
     fn to_xml(&self) -> String {
-        iter::once(self.term.to_xml())
-            .chain(
-                self.ops
-                    .iter()
-                    .flat_map(|(op, term)| vec![op.to_xml(), term.to_xml()].into_iter()),
-            )
-            .collect::<Vec<String>>()
-            .join(" ")
+        format!(
+            "<expression>
+{}
+{}</expression>",
+            self.term.to_xml(),
+            self.ops
+                .iter()
+                .flat_map(|(op, term)| vec![op.to_xml(), term.to_xml()].into_iter())
+                .collect::<Vec<String>>()
+                .join("\n")
+        )
     }
 }
 
@@ -399,7 +421,7 @@ pub enum Term {
 
 impl ToXml for Term {
     fn to_xml(&self) -> String {
-        match &self {
+        let inner = match &self {
             &Term::IntegerConstant(int) => format!("<integerConstant> {} </integerConstant>", int),
             &Term::StringConstant(string) => {
                 format!("<stringConstant> {} </stringConstant>", string)
@@ -417,7 +439,8 @@ impl ToXml for Term {
             &Term::SubroutineCall(subroutine_call) => subroutine_call.to_xml(),
             &Term::Expression(expression) => expression.to_xml(),
             &Term::UnaryOpTerm((op, term)) => format!("{}\n{}", op.to_xml(), term.to_xml()),
-        }
+        };
+        format!("<term>\n{}\n</term>", inner)
     }
 }
 
@@ -432,7 +455,8 @@ impl ToXml for SubroutineCall {
         let mut string = if let Some(class_or_var_name) = &self.class_or_var_name {
             format!(
                 "{}
-<symbol> . </symbol>",
+<symbol> . </symbol>
+",
                 class_or_var_name.to_xml()
             )
         } else {
@@ -441,14 +465,22 @@ impl ToXml for SubroutineCall {
         string.push_str(&format!(
             "{}
 <symbol> ( </symbol>
-{}
+<expressionList>
+{}</expressionList>
 <symbol> ) </symbol>",
             self.subroutine_name.to_xml(),
-            self.expression_list
-                .iter()
-                .map(|e| e.to_xml())
-                .collect::<Vec<String>>()
-                .join(", ")
+            if self.expression_list.is_empty() {
+                String::new()
+            } else {
+                let mut expression_list = self
+                    .expression_list
+                    .iter()
+                    .map(|e| e.to_xml())
+                    .collect::<Vec<String>>()
+                    .join("\n<symbol> , </symbol>\n");
+                expression_list.push_str("\n");
+                expression_list
+            }
         ));
         string
     }

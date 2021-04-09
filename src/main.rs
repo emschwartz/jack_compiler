@@ -55,20 +55,20 @@ fn main() {
         vec![path.to_owned()]
     };
 
-    for file in files {
-        if file.extension().and_then(|s| s.to_str()) != Some("jack") {
+    for file_path in files {
+        if file_path.extension().and_then(|s| s.to_str()) != Some("jack") {
             continue;
         }
 
         let file =
-            File::open(file).expect(&format!("Cannot open file: {}", path.to_str().unwrap()));
+            File::open(&file_path).expect(&format!("Cannot open file: {}", path.to_str().unwrap()));
         let reader = BufReader::new(file);
         let lines = reader.lines().map(|line| line.expect("Error reading line"));
 
         let mut output_tokens_file = if output_tokens {
             let output_path = &output_dir.join(format!(
                 "{}T.xml",
-                path.file_stem().and_then(|p| p.to_str()).unwrap()
+                file_path.file_stem().and_then(|p| p.to_str()).unwrap()
             ));
             let output_file = File::create(output_path).expect("Unable to create file");
             let mut writer = BufWriter::new(output_file);
@@ -91,7 +91,8 @@ fn main() {
 
         if output_parsed {
             let output_path = &output_dir.join(
-                path.with_extension("xml")
+                file_path
+                    .with_extension("xml")
                     .file_name()
                     .and_then(|p| p.to_str())
                     .unwrap(),
