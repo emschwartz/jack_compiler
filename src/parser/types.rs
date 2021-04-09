@@ -341,7 +341,12 @@ pub struct DoStatement(pub SubroutineCall);
 
 impl ToXml for DoStatement {
     fn to_xml(&self) -> String {
-        unimplemented!()
+        format!(
+            "<keyword> do </keyword>
+{}
+<symbol> ; </symbol>",
+            self.0.to_xml()
+        )
     }
 }
 
@@ -354,8 +359,8 @@ impl ToXml for ReturnStatement {
   <keyword> return </keyword>
   {}<symbol> ; </symbol>
 </returnStatement>",
-            if let Some(_expression) = &self.0 {
-                unimplemented!()
+            if let Some(expression) = &self.0 {
+                format!("{}\n", expression.to_xml())
             } else {
                 String::new()
             }

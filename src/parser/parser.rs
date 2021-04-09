@@ -65,7 +65,6 @@ where
     fn compile_class(&mut self) -> Result<Class, String> {
         self.expect_token(Token::Keyword(Keyword::Class))?;
         let class_name = self.expect_identifier()?;
-        dbg!("class", &class_name);
         self.expect_token(Token::Symbol(Symbol::CurlyOpen))?;
         let class_var_declarations = self.compile_class_var_declarations()?;
         let subroutine_declarations = self.compile_subroutine_declarations()?;
@@ -97,7 +96,6 @@ where
             Some(Token::Keyword(Keyword::Field)) => StaticOrField::Field,
             _ => return Err(String::from("Expected keyword: 'static' or 'field'")),
         };
-        dbg!("class var declaration", static_or_field);
         let var_type = self.expect_var_type()?;
         let mut var_names = vec![self.expect_identifier()?];
         while let Some(&Token::Symbol(Symbol::Comma)) = self.tokens.peek() {
@@ -114,7 +112,6 @@ where
     }
 
     fn compile_subroutine_declarations(&mut self) -> Result<Vec<SubroutineDeclaration>, String> {
-        dbg!("subroutines");
         let mut declarations = Vec::new();
         loop {
             let next = self.tokens.peek();
@@ -153,7 +150,6 @@ where
         };
 
         let name = self.expect_identifier()?;
-        dbg!("subroutine", &name);
         self.expect_token(Token::Symbol(Symbol::ParenOpen))?;
         let parameter_list = self.compile_parameter_list()?;
         self.expect_token(Token::Symbol(Symbol::ParenClose))?;
@@ -194,7 +190,6 @@ where
     }
 
     fn compile_subroutine_body(&mut self) -> Result<SubroutineBody, String> {
-        dbg!("subroutine body");
         self.expect_token(Token::Symbol(Symbol::CurlyOpen))?;
         let var_declarations = self.compile_var_declarations()?;
         let statements = self.compile_statements()?;
@@ -206,7 +201,6 @@ where
     }
 
     fn compile_var_declarations(&mut self) -> Result<Vec<VarDeclaration>, String> {
-        dbg!("var delcarations");
         let mut declarations = Vec::new();
         while self.tokens.peek() == Some(&Token::Keyword(Keyword::Var)) {
             self.tokens.next();
@@ -216,6 +210,7 @@ where
                 self.tokens.next();
                 var_names.push(self.expect_identifier()?);
             }
+            self.expect_token(Token::Symbol(Symbol::Semicolon))?;
 
             declarations.push(VarDeclaration {
                 var_type,
@@ -228,7 +223,6 @@ where
 
     fn compile_statements(&mut self) -> Result<Vec<Statement>, String> {
         let mut statements = Vec::new();
-        dbg!("statements");
 
         loop {
             let statement = match self.tokens.peek() {
@@ -250,7 +244,6 @@ where
     }
 
     fn compile_let_statement(&mut self) -> Result<LetStatement, String> {
-        dbg!("let");
         self.expect_token(Token::Keyword(Keyword::Let))?;
         let var_name = self.expect_identifier()?;
 
@@ -276,7 +269,6 @@ where
     }
 
     fn compile_if_statement(&mut self) -> Result<IfStatement, String> {
-        dbg!("if");
         self.expect_token(Token::Keyword(Keyword::If))?;
         self.expect_token(Token::Symbol(Symbol::ParenOpen))?;
         let expression = self.compile_expression()?;
@@ -303,7 +295,6 @@ where
     }
 
     fn compile_while_statement(&mut self) -> Result<WhileStatement, String> {
-        dbg!("while");
         self.expect_token(Token::Keyword(Keyword::While))?;
         self.expect_token(Token::Symbol(Symbol::ParenOpen))?;
         let expression = self.compile_expression()?;
@@ -318,14 +309,14 @@ where
     }
 
     fn compile_do_statement(&mut self) -> Result<DoStatement, String> {
-        dbg!("do");
         self.expect_token(Token::Keyword(Keyword::Do))?;
         let identifier = self.expect_identifier()?;
-        Ok(DoStatement(self.compile_subroutine_call(identifier)?))
+        let subroutine_call = self.compile_subroutine_call(identifier)?;
+        self.expect_token(Token::Symbol(Symbol::Semicolon))?;
+        Ok(DoStatement(subroutine_call))
     }
 
     fn compile_return_statement(&mut self) -> Result<ReturnStatement, String> {
-        dbg!("return");
         self.expect_token(Token::Keyword(Keyword::Return))?;
         let expression = match self.tokens.peek() {
             Some(Token::Symbol(Symbol::Semicolon)) => None,
@@ -341,7 +332,6 @@ where
     }
 
     fn compile_expression(&mut self) -> Result<Expression, String> {
-        dbg!("expression");
         let term = self.compile_term()?;
         let mut ops = Vec::new();
         loop {
@@ -379,7 +369,6 @@ where
             .tokens
             .next()
             .ok_or(String::from("Unexpected end of input, expected term"))?;
-        dbg!("term", &next);
         let term = match next {
             // integerConstant
             Token::IntegerConstant(int) => Term::IntegerConstant(int),
@@ -426,7 +415,6 @@ where
     }
 
     fn compile_subroutine_call(&mut self, identifier: String) -> Result<SubroutineCall, String> {
-        dbg!("subroutine call", &identifier);
         let (class_or_var_name, subroutine_name) = match self.tokens.next() {
             Some(Token::Symbol(Symbol::ParenOpen)) => (None, identifier),
             Some(Token::Symbol(Symbol::Period)) => {
