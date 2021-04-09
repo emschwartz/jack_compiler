@@ -1,4 +1,3 @@
-
 pub trait ToXml {
-  fn to_xml(&self) -> String;
+    fn to_xml(&self) -> String;
 }

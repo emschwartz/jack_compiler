@@ -98,8 +98,16 @@ fn main() {
                     .unwrap(),
             );
             let mut output_file = File::create(output_path).expect("Unable to create file");
-            write!(output_file, "{}", parsed.to_xml())
-                .expect("Error writing parsed tokens to file");
+            let output_string = parsed.to_xml();
+            // Remove empty lines
+            // (this is less efficient but simpler than ensuring we exactly
+            // match the spacing expected by the nand2tetris compare file)
+            let output_string = output_string
+                .split("\n")
+                .filter(|line| !line.chars().all(|c| c.is_whitespace()))
+                .collect::<Vec<&str>>()
+                .join("\n");
+            write!(output_file, "{}", output_string).expect("Error writing parsed tokens to file");
         }
     }
 }
