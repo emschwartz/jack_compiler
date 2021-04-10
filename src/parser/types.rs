@@ -263,7 +263,12 @@ pub struct LetStatement {
 impl ToXml for LetStatement {
     fn to_xml(&self) -> String {
         let left_side_expression = if let Some(ref expression) = self.left_side_expression {
-            format!("[{}]", expression.to_xml())
+            format!(
+                "<symbol> [ </symbol>
+{}
+<symbol> ] </symbol>",
+                expression.to_xml()
+            )
         } else {
             String::new()
         };
@@ -434,7 +439,12 @@ impl ToXml for Term {
                 expression.to_xml()
             ),
             &Term::SubroutineCall(subroutine_call) => subroutine_call.to_xml(),
-            &Term::Expression(expression) => expression.to_xml(),
+            &Term::Expression(expression) => format!(
+                "<symbol> ( </symbol>
+{}
+<symbol> ) </symbol>",
+                expression.to_xml()
+            ),
             &Term::UnaryOpTerm((op, term)) => format!("{}\n{}", op.to_xml(), term.to_xml()),
         };
         format!("<term>\n{}\n</term>", inner)
