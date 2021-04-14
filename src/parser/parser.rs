@@ -5,7 +5,7 @@ use crate::tokenizer::{Keyword, Symbol, Token};
 
 pub fn parse<I: Iterator<Item = Token>>(tokens: I) -> Result<Class, String> {
     let mut parser = Parser::new(tokens);
-    parser.compile_class()
+    parser.parse_class()
 }
 
 struct Parser<I: Iterator<Item = Token>> {
@@ -62,12 +62,12 @@ where
         }
     }
 
-    fn compile_class(&mut self) -> Result<Class, String> {
+    fn parse_class(&mut self) -> Result<Class, String> {
         self.expect_token(Token::Keyword(Keyword::Class))?;
         let class_name = self.expect_identifier()?;
         self.expect_token(Token::Symbol(Symbol::CurlyOpen))?;
-        let class_var_declarations = self.compile_class_var_declarations()?;
-        let subroutine_declarations = self.compile_subroutine_declarations()?;
+        let class_var_declarations = self.parse_class_var_declarations()?;
+        let subroutine_declarations = self.parse_subroutine_declarations()?;
         self.expect_token(Token::Symbol(Symbol::CurlyClose))?;
 
         Ok(Class {
@@ -77,12 +77,12 @@ where
         })
     }
 
-    fn compile_class_var_declarations(&mut self) -> Result<Vec<ClassVarDeclaration>, String> {
+    fn parse_class_var_declarations(&mut self) -> Result<Vec<ClassVarDeclaration>, String> {
         let mut declarations = Vec::new();
         loop {
             match self.tokens.peek() {
                 Some(&Token::Keyword(Keyword::Static)) | Some(&Token::Keyword(Keyword::Field)) => {
-                    declarations.push(self.compile_class_var_declaration()?)
+                    declarations.push(self.parse_class_var_declaration()?)
                 }
                 _ => break,
             }
@@ -90,7 +90,7 @@ where
         Ok(declarations)
     }
 
-    fn compile_class_var_declaration(&mut self) -> Result<ClassVarDeclaration, String> {
+    fn parse_class_var_declaration(&mut self) -> Result<ClassVarDeclaration, String> {
         let static_or_field = match self.tokens.next() {
             Some(Token::Keyword(Keyword::Static)) => StaticOrField::Static,
             Some(Token::Keyword(Keyword::Field)) => StaticOrField::Field,
@@ -111,7 +111,7 @@ where
         })
     }
 
-    fn compile_subroutine_declarations(&mut self) -> Result<Vec<SubroutineDeclaration>, String> {
+    fn parse_subroutine_declarations(&mut self) -> Result<Vec<SubroutineDeclaration>, String> {
         let mut declarations = Vec::new();
         loop {
             let next = self.tokens.peek();
@@ -119,7 +119,7 @@ where
                 Some(&Token::Keyword(Keyword::Constructor))
                 | Some(&Token::Keyword(Keyword::Function))
                 | Some(&Token::Keyword(Keyword::Method)) => {
-                    declarations.push(self.compile_subroutine_declaration()?)
+                    declarations.push(self.parse_subroutine_declaration()?)
                 }
                 _ => break,
             }
@@ -127,7 +127,7 @@ where
         Ok(declarations)
     }
 
-    fn compile_subroutine_declaration(&mut self) -> Result<SubroutineDeclaration, String> {
+    fn parse_subroutine_declaration(&mut self) -> Result<SubroutineDeclaration, String> {
         let subroutine_type = match self.tokens.next() {
             None => return Err(format!("Unexpected end of input, expected subroutine type")),
             Some(Token::Keyword(Keyword::Constructor)) => SubroutineType::Constructor,
@@ -151,9 +151,9 @@ where
 
         let name = self.expect_identifier()?;
         self.expect_token(Token::Symbol(Symbol::ParenOpen))?;
-        let parameter_list = self.compile_parameter_list()?;
+        let parameter_list = self.parse_parameter_list()?;
         self.expect_token(Token::Symbol(Symbol::ParenClose))?;
-        let body = self.compile_subroutine_body()?;
+        let body = self.parse_subroutine_body()?;
 
         Ok(SubroutineDeclaration {
             subroutine_type,
@@ -164,7 +164,7 @@ where
         })
     }
 
-    fn compile_parameter_list(&mut self) -> Result<Vec<Parameter>, String> {
+    fn parse_parameter_list(&mut self) -> Result<Vec<Parameter>, String> {
         let mut parameters = Vec::new();
 
         match self.tokens.peek() {
@@ -189,10 +189,10 @@ where
         Ok(parameters)
     }
 
-    fn compile_subroutine_body(&mut self) -> Result<SubroutineBody, String> {
+    fn parse_subroutine_body(&mut self) -> Result<SubroutineBody, String> {
         self.expect_token(Token::Symbol(Symbol::CurlyOpen))?;
-        let var_declarations = self.compile_var_declarations()?;
-        let statements = self.compile_statements()?;
+        let var_declarations = self.parse_var_declarations()?;
+        let statements = self.parse_statements()?;
         self.expect_token(Token::Symbol(Symbol::CurlyClose))?;
         Ok(SubroutineBody {
             var_declarations,
@@ -200,7 +200,7 @@ where
         })
     }
 
-    fn compile_var_declarations(&mut self) -> Result<Vec<VarDeclaration>, String> {
+    fn parse_var_declarations(&mut self) -> Result<Vec<VarDeclaration>, String> {
         let mut declarations = Vec::new();
         while self.tokens.peek() == Some(&Token::Keyword(Keyword::Var)) {
             self.tokens.next();
@@ -221,19 +221,19 @@ where
         Ok(declarations)
     }
 
-    fn compile_statements(&mut self) -> Result<Vec<Statement>, String> {
+    fn parse_statements(&mut self) -> Result<Vec<Statement>, String> {
         let mut statements = Vec::new();
 
         loop {
             let statement = match self.tokens.peek() {
-                Some(Token::Keyword(Keyword::Let)) => Statement::Let(self.compile_let_statement()?),
-                Some(Token::Keyword(Keyword::If)) => Statement::If(self.compile_if_statement()?),
+                Some(Token::Keyword(Keyword::Let)) => Statement::Let(self.parse_let_statement()?),
+                Some(Token::Keyword(Keyword::If)) => Statement::If(self.parse_if_statement()?),
                 Some(Token::Keyword(Keyword::While)) => {
-                    Statement::While(self.compile_while_statement()?)
+                    Statement::While(self.parse_while_statement()?)
                 }
-                Some(Token::Keyword(Keyword::Do)) => Statement::Do(self.compile_do_statement()?),
+                Some(Token::Keyword(Keyword::Do)) => Statement::Do(self.parse_do_statement()?),
                 Some(Token::Keyword(Keyword::Return)) => {
-                    Statement::Return(self.compile_return_statement()?)
+                    Statement::Return(self.parse_return_statement()?)
                 }
                 _ => break,
             };
@@ -243,14 +243,14 @@ where
         Ok(statements)
     }
 
-    fn compile_let_statement(&mut self) -> Result<LetStatement, String> {
+    fn parse_let_statement(&mut self) -> Result<LetStatement, String> {
         self.expect_token(Token::Keyword(Keyword::Let))?;
         let var_name = self.expect_identifier()?;
 
         let left_side_expression =
             if self.tokens.peek() == Some(&Token::Symbol(Symbol::BracketOpen)) {
                 self.tokens.next();
-                let expression = self.compile_expression()?;
+                let expression = self.parse_expression()?;
                 self.expect_token(Token::Symbol(Symbol::BracketClose))?;
                 Some(expression)
             } else {
@@ -258,7 +258,7 @@ where
             };
 
         self.expect_token(Token::Symbol(Symbol::Equals))?;
-        let right_side_expression = self.compile_expression()?;
+        let right_side_expression = self.parse_expression()?;
         self.expect_token(Token::Symbol(Symbol::Semicolon))?;
 
         Ok(LetStatement {
@@ -268,19 +268,19 @@ where
         })
     }
 
-    fn compile_if_statement(&mut self) -> Result<IfStatement, String> {
+    fn parse_if_statement(&mut self) -> Result<IfStatement, String> {
         self.expect_token(Token::Keyword(Keyword::If))?;
         self.expect_token(Token::Symbol(Symbol::ParenOpen))?;
-        let expression = self.compile_expression()?;
+        let expression = self.parse_expression()?;
         self.expect_token(Token::Symbol(Symbol::ParenClose))?;
         self.expect_token(Token::Symbol(Symbol::CurlyOpen))?;
-        let if_statements = self.compile_statements()?;
+        let if_statements = self.parse_statements()?;
         self.expect_token(Token::Symbol(Symbol::CurlyClose))?;
 
         let else_statements = if self.tokens.peek() == Some(&Token::Keyword(Keyword::Else)) {
             self.tokens.next();
             self.expect_token(Token::Symbol(Symbol::CurlyOpen))?;
-            let statements = self.compile_statements()?;
+            let statements = self.parse_statements()?;
             self.expect_token(Token::Symbol(Symbol::CurlyClose))?;
             Some(statements)
         } else {
@@ -294,13 +294,13 @@ where
         })
     }
 
-    fn compile_while_statement(&mut self) -> Result<WhileStatement, String> {
+    fn parse_while_statement(&mut self) -> Result<WhileStatement, String> {
         self.expect_token(Token::Keyword(Keyword::While))?;
         self.expect_token(Token::Symbol(Symbol::ParenOpen))?;
-        let expression = self.compile_expression()?;
+        let expression = self.parse_expression()?;
         self.expect_token(Token::Symbol(Symbol::ParenClose))?;
         self.expect_token(Token::Symbol(Symbol::CurlyOpen))?;
-        let statements = self.compile_statements()?;
+        let statements = self.parse_statements()?;
         self.expect_token(Token::Symbol(Symbol::CurlyClose))?;
         Ok(WhileStatement {
             expression,
@@ -308,19 +308,19 @@ where
         })
     }
 
-    fn compile_do_statement(&mut self) -> Result<DoStatement, String> {
+    fn parse_do_statement(&mut self) -> Result<DoStatement, String> {
         self.expect_token(Token::Keyword(Keyword::Do))?;
         let identifier = self.expect_identifier()?;
-        let subroutine_call = self.compile_subroutine_call(identifier)?;
+        let subroutine_call = self.parse_subroutine_call(identifier)?;
         self.expect_token(Token::Symbol(Symbol::Semicolon))?;
         Ok(DoStatement(subroutine_call))
     }
 
-    fn compile_return_statement(&mut self) -> Result<ReturnStatement, String> {
+    fn parse_return_statement(&mut self) -> Result<ReturnStatement, String> {
         self.expect_token(Token::Keyword(Keyword::Return))?;
         let expression = match self.tokens.peek() {
             Some(Token::Symbol(Symbol::Semicolon)) => None,
-            Some(_) => Some(self.compile_expression()?),
+            Some(_) => Some(self.parse_expression()?),
             None => {
                 return Err(format!(
                     "Unexpected end of input, expected ';' or expression"
@@ -331,46 +331,46 @@ where
         Ok(ReturnStatement(expression))
     }
 
-    fn compile_expression(&mut self) -> Result<Expression, String> {
-        let term = self.compile_term()?;
+    fn parse_expression(&mut self) -> Result<Expression, String> {
+        let term = self.parse_term()?;
         let mut ops = Vec::new();
         loop {
             match self.tokens.peek() {
                 Some(&Token::Symbol(Symbol::Plus)) => {
                     self.tokens.next();
-                    ops.push((Op::Plus, self.compile_term()?))
+                    ops.push((Op::Plus, self.parse_term()?))
                 }
                 Some(&Token::Symbol(Symbol::Minus)) => {
                     self.tokens.next();
-                    ops.push((Op::Minus, self.compile_term()?))
+                    ops.push((Op::Minus, self.parse_term()?))
                 }
                 Some(&Token::Symbol(Symbol::Asterix)) => {
                     self.tokens.next();
-                    ops.push((Op::Asterix, self.compile_term()?))
+                    ops.push((Op::Asterix, self.parse_term()?))
                 }
                 Some(&Token::Symbol(Symbol::Slash)) => {
                     self.tokens.next();
-                    ops.push((Op::Slash, self.compile_term()?))
+                    ops.push((Op::Slash, self.parse_term()?))
                 }
                 Some(&Token::Symbol(Symbol::Ampersand)) => {
                     self.tokens.next();
-                    ops.push((Op::Ampersand, self.compile_term()?))
+                    ops.push((Op::Ampersand, self.parse_term()?))
                 }
                 Some(&Token::Symbol(Symbol::VerticalBar)) => {
                     self.tokens.next();
-                    ops.push((Op::VerticalBar, self.compile_term()?))
+                    ops.push((Op::VerticalBar, self.parse_term()?))
                 }
                 Some(&Token::Symbol(Symbol::LessThan)) => {
                     self.tokens.next();
-                    ops.push((Op::LessThan, self.compile_term()?))
+                    ops.push((Op::LessThan, self.parse_term()?))
                 }
                 Some(&Token::Symbol(Symbol::GreaterThan)) => {
                     self.tokens.next();
-                    ops.push((Op::GreaterThan, self.compile_term()?))
+                    ops.push((Op::GreaterThan, self.parse_term()?))
                 }
                 Some(&Token::Symbol(Symbol::Equals)) => {
                     self.tokens.next();
-                    ops.push((Op::Equals, self.compile_term()?))
+                    ops.push((Op::Equals, self.parse_term()?))
                 }
                 _ => break,
             }
@@ -378,7 +378,7 @@ where
         Ok(Expression { term, ops })
     }
 
-    fn compile_term(&mut self) -> Result<Term, String> {
+    fn parse_term(&mut self) -> Result<Term, String> {
         let next = self
             .tokens
             .next()
@@ -398,36 +398,36 @@ where
               // varName[expression]
               Some(&Token::Symbol(Symbol::BracketOpen)) => {
                 self.tokens.next();
-                let expression = self.compile_expression()?;
+                let expression = self.parse_expression()?;
                 self.expect_token(Token::Symbol(Symbol::BracketClose))?;
                 Term::VarNameExpression((var_name, Box::new(expression)))
               }
               // subroutineName(expressionList)
               Some(&Token::Symbol(Symbol::ParenOpen))
               // classOrVarName.subroutineName
-              | Some(&Token::Symbol(Symbol::Period)) => Term::SubroutineCall(self.compile_subroutine_call(var_name)?),
+              | Some(&Token::Symbol(Symbol::Period)) => Term::SubroutineCall(self.parse_subroutine_call(var_name)?),
               // varName
               _ => Term::VarName(var_name)
             },
             // (expression)
             Token::Symbol(Symbol::ParenOpen) => {
-                let expression = self.compile_expression()?;
+                let expression = self.parse_expression()?;
                 self.expect_token(Token::Symbol(Symbol::ParenClose))?;
                 Term::Expression(Box::new(expression))
             }
             // unaryOp term
             Token::Symbol(Symbol::Minus) => {
-                Term::UnaryOpTerm((UnaryOp::Minus, Box::new(self.compile_term()?)))
+                Term::UnaryOpTerm((UnaryOp::Minus, Box::new(self.parse_term()?)))
             }
             Token::Symbol(Symbol::Tilde) => {
-                Term::UnaryOpTerm((UnaryOp::Tilde, Box::new(self.compile_term()?)))
+                Term::UnaryOpTerm((UnaryOp::Tilde, Box::new(self.parse_term()?)))
             }
             token => return Err(format!("Unexpected token: {:?}, expected term", token)),
         };
         Ok(term)
     }
 
-    fn compile_subroutine_call(&mut self, identifier: String) -> Result<SubroutineCall, String> {
+    fn parse_subroutine_call(&mut self, identifier: String) -> Result<SubroutineCall, String> {
         let (class_or_var_name, subroutine_name) = match self.tokens.next() {
             Some(Token::Symbol(Symbol::ParenOpen)) => (None, identifier),
             Some(Token::Symbol(Symbol::Period)) => {
@@ -454,10 +454,10 @@ where
             self.tokens.next();
             Vec::new()
         } else {
-            let mut expression_list = vec![self.compile_expression()?];
+            let mut expression_list = vec![self.parse_expression()?];
             while self.tokens.peek() == Some(&Token::Symbol(Symbol::Comma)) {
                 self.tokens.next();
-                expression_list.push(self.compile_expression()?);
+                expression_list.push(self.parse_expression()?);
             }
             self.expect_token(Token::Symbol(Symbol::ParenClose))?;
             expression_list

@@ -1,5 +1,5 @@
 use clap::{App, Arg};
-use jack_compiler::{parser::parse, tokenizer::tokenize, ToXml};
+use jack_compiler::{compiler::compile_class, parser::parse, tokenizer::tokenize, ToXml};
 use std::fs::{create_dir_all, File};
 use std::io::{BufRead, BufReader, BufWriter, Write};
 use std::iter::Iterator;
@@ -84,7 +84,7 @@ fn main() {
             }
         });
 
-        let parsed = parse(tokens).expect("Error compiling class");
+        let class = parse(tokens).expect("Error compiling class");
         if let Some(ref mut writer) = output_tokens_file {
             write!(writer, "</tokens>").expect("Error writing to tokens file");
         }
@@ -98,7 +98,7 @@ fn main() {
                     .unwrap(),
             );
             let mut output_file = File::create(output_path).expect("Unable to create file");
-            let output_string = parsed.to_xml();
+            let output_string = class.to_xml();
             // Remove empty lines
             // (this is less efficient but simpler than ensuring we exactly
             // match the spacing expected by the nand2tetris compare file)
@@ -108,6 +108,20 @@ fn main() {
                 .collect::<Vec<&str>>()
                 .join("\n");
             write!(output_file, "{}", output_string).expect("Error writing parsed tokens to file");
+        }
+
+        let vm_output_path = output_dir.join(
+            file_path
+                .with_extension("vm")
+                .file_name()
+                .and_then(|p| p.to_str())
+                .unwrap(),
+        );
+        let vm_output_file = File::create(vm_output_path).expect("Unable to create vm file");
+        let mut writer = BufWriter::new(vm_output_file);
+        let compiled = compile_class(class);
+        for string in compiled {
+            write!(writer, "{}\n", string).expect("Error writing to vm file");
         }
     }
 }

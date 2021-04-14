@@ -52,7 +52,7 @@ impl ToXml for StaticOrField {
     }
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub enum VarType {
     Int,
     Char,
@@ -99,6 +99,7 @@ impl ToXml for Vec<ClassVarDeclaration> {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Copy)]
 pub enum SubroutineType {
     Constructor,
     Function,
