@@ -1,5 +1,5 @@
 use super::{
-    symbol_table::{SymbolTable, VarKind},
+    symbol_table::{SymbolTable, VarKind, VarType},
     vm_writer::{ArithmeticCommand, Segment, VmWriter},
 };
 use crate::parser::*;
@@ -14,6 +14,7 @@ pub fn compile_class(class: Class) -> impl Iterator<Item = String> {
 struct CodeGenerator {
     symbol_table: SymbolTable,
     vm_writer: VmWriter,
+    label_count: usize,
 }
 
 impl CodeGenerator {
@@ -21,6 +22,7 @@ impl CodeGenerator {
         CodeGenerator {
             symbol_table: SymbolTable::new(),
             vm_writer: VmWriter::new(),
+            label_count: 0,
         }
     }
 
@@ -81,12 +83,7 @@ impl CodeGenerator {
 
         self.vm_writer.write_function(
             &format!("{}.{}", &class_name, subroutine.name),
-            subroutine
-                .body
-                .var_declarations
-                .len()
-                .try_into()
-                .expect("num locals must be a u16"),
+            self.symbol_table.var_count(VarKind::Var).try_into().unwrap()
         );
 
         for statement in subroutine.body.statements {
@@ -101,9 +98,51 @@ impl CodeGenerator {
                 // Discard return value
                 self.vm_writer.write_pop(Segment::Temp, 0);
             }
-            Statement::If(statement) => unimplemented!(),
-            Statement::While(statement) => unimplemented!(),
-            Statement::Let(statement) => unimplemented!(),
+            Statement::If(statement) => {
+                self.label_count += 1;
+                let label1 = format!("IF-{}-FALSE", self.label_count);
+                let label2 = format!("IF-{}-END", self.label_count);
+                self.compile_expression(statement.expression);
+                self.vm_writer.write_arithmetic(ArithmeticCommand::Not);
+                self.vm_writer.write_if(&label1);
+                for statement in statement.if_statements {
+                    self.compile_statement(statement);
+                }
+                self.vm_writer.write_goto(&label2);
+                self.vm_writer.write_label(&label1);
+                if let Some(else_statements) = statement.else_statements {
+                    for statement in else_statements {
+                        self.compile_statement(statement);
+                    }
+                }
+                self.vm_writer.write_label(&label2);
+            },
+            Statement::While(statement) => {
+                self.label_count += 1;
+                let label1 = format!("WHILE-{}-CONDITION", self.label_count);
+                let label2 = format!("WHILE-{}-END", self.label_count);
+                self.vm_writer.write_label(&label1);
+                self.compile_expression(statement.expression);
+                self.vm_writer.write_arithmetic(ArithmeticCommand::Not);
+                self.vm_writer.write_if(&label2);
+                for statement in statement.statements {
+                    self.compile_statement(statement);
+                }
+                self.vm_writer.write_goto(&label1);
+                self.vm_writer.write_label(&label2);
+            },
+            Statement::Let(statement) => {
+                self.compile_expression(statement.right_side_expression);
+                if let Some(expression) = statement.left_side_expression {
+                    unimplemented!()
+                }
+                let entry = self.symbol_table.get(&statement.var_name).expect("Variables must be declared before they are assigned");
+                if entry.kind == VarKind::Field {
+                    self.vm_writer.write_push(Segment::Arg, 0);
+                    self.vm_writer.write_pop(Segment::This, 0);
+                }
+                self.vm_writer.write_pop(Segment::from(entry.kind), entry.index);
+            },
             Statement::Return(statement) => {
                 if let Some(expression) = statement.0 {
                     self.compile_expression(expression);
@@ -141,7 +180,15 @@ impl CodeGenerator {
                 Op::Plus => self.vm_writer.write_arithmetic(ArithmeticCommand::Add),
                 Op::Minus => self.vm_writer.write_arithmetic(ArithmeticCommand::Sub),
                 Op::Asterix => self.vm_writer.write_call("Math.multiply", 2),
-                _ => unimplemented!(),
+                Op::GreaterThan => self.vm_writer.write_arithmetic(ArithmeticCommand::Gt),
+                Op::LessThan => self.vm_writer.write_arithmetic(ArithmeticCommand::Lt),
+                Op::Ampersand => self.vm_writer.write_arithmetic(ArithmeticCommand::And),
+                Op::Equals => self.vm_writer.write_arithmetic(ArithmeticCommand::Eq),
+
+                _ => {
+                    dbg!(op);
+                    unimplemented!()
+                },
             };
         }
     }
@@ -150,7 +197,38 @@ impl CodeGenerator {
         match term {
             Term::Expression(expression) => self.compile_expression(*expression),
             Term::IntegerConstant(int) => self.vm_writer.write_push(Segment::Const, int),
-            _ => unimplemented!(),
+            Term::KeywordConstant(keyword) => match keyword {
+                KeywordConstant::True => {
+                    self.vm_writer.write_push(Segment::Const, 1);
+                    self.vm_writer.write_arithmetic(ArithmeticCommand::Neg);
+                },
+                KeywordConstant::False => self.vm_writer.write_push(Segment::Const, 0),
+                KeywordConstant::This => {
+                    self.symbol_table.get("this").expect("Cannot use keyword this when not in a method");
+                    self.vm_writer.write_push(Segment::Arg, 0);
+                },
+                KeywordConstant::Null => self.vm_writer.write_push(Segment::Const, 0),
+            },
+            Term::UnaryOpTerm((op, term)) => {
+                self.compile_term(*term);
+                match op {
+                    UnaryOp::Minus => self.vm_writer.write_arithmetic(ArithmeticCommand::Neg),
+                    UnaryOp::Tilde => self.vm_writer.write_arithmetic(ArithmeticCommand::Not),
+                };
+            },
+            Term::VarName(var_name) => {
+                let entry = self.symbol_table.get(&&var_name).expect(&format!("Unknown variable: {}", var_name));
+                if entry.kind == VarKind::Field {
+                    self.vm_writer.write_push(Segment::Arg, 0);
+                    self.vm_writer.write_pop(Segment::This, 0);
+                }
+                self.vm_writer.write_push(Segment::from(entry.kind), entry.index);
+            },
+            Term::SubroutineCall(subroutine_call) => self.compile_subroutine_call(subroutine_call),
+            _ => {
+                println!("{:?}", term);
+                unimplemented!()
+            },
         }
     }
 }

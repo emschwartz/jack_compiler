@@ -1,5 +1,6 @@
 use std::iter::IntoIterator;
 use std::vec::IntoIter;
+use super::symbol_table::VarKind;
 pub enum Segment {
     Const,
     Arg,
@@ -9,6 +10,18 @@ pub enum Segment {
     That,
     Pointer,
     Temp,
+}
+
+impl From<VarKind> for Segment {
+    fn from(var_kind: VarKind) -> Self {
+        match var_kind {
+            VarKind::Static => Segment::Static,
+            VarKind::Field => Segment::This,
+            VarKind::Arg => Segment::Arg,
+            VarKind::Var => Segment::Local,
+        }
+
+    }
 }
 
 impl AsRef<str> for Segment {

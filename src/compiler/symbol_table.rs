@@ -1,7 +1,7 @@
-use crate::parser::VarType;
-use std::collections::HashMap;
+pub use crate::parser::VarType;
+use std::{collections::HashMap, convert::TryInto};
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum VarKind {
     Static,
     Field,
@@ -9,19 +9,21 @@ pub enum VarKind {
     Var,
 }
 
+#[derive(Debug)]
 pub struct SymbolEntry {
     pub symbol_type: VarType,
     pub kind: VarKind,
-    pub index: usize,
+    pub index: u16,
 }
 
+#[derive(Debug)]
 pub struct SymbolTable {
     class_symbols: HashMap<String, SymbolEntry>,
     subroutine_symbols: HashMap<String, SymbolEntry>,
-    num_statics: usize,
-    num_fields: usize,
-    num_args: usize,
-    num_vars: usize,
+    num_statics: u16,
+    num_fields: u16,
+    num_args: u16,
+    num_vars: u16,
 }
 
 impl SymbolTable {
@@ -67,7 +69,7 @@ impl SymbolTable {
                 self.num_fields += 1;
             }
             VarKind::Arg => {
-                self.class_symbols.insert(
+                self.subroutine_symbols.insert(
                     name,
                     SymbolEntry {
                         symbol_type,
@@ -78,7 +80,7 @@ impl SymbolTable {
                 self.num_args += 1;
             }
             VarKind::Var => {
-                self.class_symbols.insert(
+                self.subroutine_symbols.insert(
                     name,
                     SymbolEntry {
                         symbol_type,
@@ -97,33 +99,12 @@ impl SymbolTable {
             VarKind::Field => self.num_fields,
             VarKind::Arg => self.num_args,
             VarKind::Var => self.num_vars,
-        }
+        }.try_into().expect("Var count exceeds u16 max")
     }
 
     pub fn get(&self, name: &str) -> Option<&SymbolEntry> {
         self.subroutine_symbols
             .get(name)
             .or_else(|| self.class_symbols.get(name))
-    }
-
-    pub fn get_kind(&self, name: &str) -> Option<VarKind> {
-        self.subroutine_symbols
-            .get(name)
-            .or_else(|| self.class_symbols.get(name))
-            .map(|entry| entry.kind)
-    }
-
-    pub fn get_type(&self, name: &str) -> Option<&VarType> {
-        self.subroutine_symbols
-            .get(name)
-            .or_else(|| self.class_symbols.get(name))
-            .map(|entry| &entry.symbol_type)
-    }
-
-    pub fn get_index(&self, name: &str) -> Option<usize> {
-        self.subroutine_symbols
-            .get(name)
-            .or_else(|| self.class_symbols.get(name))
-            .map(|entry| entry.index)
     }
 }
