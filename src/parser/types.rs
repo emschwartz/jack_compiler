@@ -9,6 +9,7 @@ impl ToXml for Identifier {
     }
 }
 
+#[derive(Debug)]
 pub struct Class {
     pub class_name: Identifier,
     pub class_var_declarations: Vec<ClassVarDeclaration>,
@@ -71,6 +72,7 @@ impl ToXml for VarType {
     }
 }
 
+#[derive(Debug)]
 pub struct ClassVarDeclaration {
     pub static_or_field: StaticOrField,
     pub var_type: VarType,
@@ -135,6 +137,7 @@ impl ToXml for Vec<Parameter> {
     }
 }
 
+#[derive(Debug)]
 pub struct SubroutineDeclaration {
     pub subroutine_type: SubroutineType,
     pub return_type: Option<VarType>,
@@ -174,6 +177,7 @@ impl ToXml for Vec<SubroutineDeclaration> {
     }
 }
 
+#[derive(Debug)]
 pub struct SubroutineBody {
     pub var_declarations: Vec<VarDeclaration>,
     pub statements: Vec<Statement>,
@@ -194,6 +198,7 @@ impl ToXml for SubroutineBody {
     }
 }
 
+#[derive(Debug)]
 pub struct VarDeclaration {
     pub var_type: VarType,
     pub var_names: Vec<Identifier>,
@@ -224,6 +229,7 @@ impl ToXml for Vec<VarDeclaration> {
     }
 }
 
+#[derive(Debug)]
 pub enum Statement {
     Let(LetStatement),
     If(IfStatement),
@@ -255,6 +261,7 @@ impl ToXml for Vec<Statement> {
 }
 
 /** 'let' var_name ('[' left_side_expression ']')? '=' expression ';' */
+#[derive(Debug)]
 pub struct LetStatement {
     pub var_name: Identifier,
     pub left_side_expression: Option<Expression>,
@@ -289,6 +296,7 @@ impl ToXml for LetStatement {
     }
 }
 
+#[derive(Debug)]
 pub struct IfStatement {
     pub expression: Expression,
     pub if_statements: Vec<Statement>,
@@ -332,6 +340,7 @@ impl ToXml for IfStatement {
     }
 }
 
+#[derive(Debug)]
 pub struct WhileStatement {
     pub expression: Expression,
     pub statements: Vec<Statement>,
@@ -355,6 +364,7 @@ impl ToXml for WhileStatement {
     }
 }
 
+#[derive(Debug)]
 pub struct DoStatement(pub SubroutineCall);
 
 impl ToXml for DoStatement {
@@ -370,6 +380,7 @@ impl ToXml for DoStatement {
     }
 }
 
+#[derive(Debug)]
 pub struct ReturnStatement(pub Option<Expression>);
 
 impl ToXml for ReturnStatement {
@@ -389,6 +400,7 @@ impl ToXml for ReturnStatement {
     }
 }
 
+#[derive(Debug)]
 pub struct Expression {
     pub term: Term,
     pub ops: Vec<(Op, Term)>,
@@ -411,6 +423,7 @@ impl ToXml for Expression {
     }
 }
 
+#[derive(Debug)]
 pub enum Term {
     IntegerConstant(u16),
     StringConstant(String),
@@ -452,6 +465,7 @@ impl ToXml for Term {
     }
 }
 
+#[derive(Debug)]
 pub struct SubroutineCall {
     pub class_or_var_name: Option<Identifier>,
     pub subroutine_name: Identifier,
@@ -528,6 +542,7 @@ impl ToXml for Op {
     }
 }
 
+#[derive(Debug)]
 pub enum UnaryOp {
     Minus,
     Tilde,
@@ -548,6 +563,7 @@ impl ToXml for UnaryOp {
     }
 }
 
+#[derive(Debug)]
 pub enum KeywordConstant {
     True,
     False,
