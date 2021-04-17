@@ -137,16 +137,29 @@ impl CodeGenerator {
                 self.vm_writer.write_label(&label2);
             }
             Statement::Let(statement) => {
-                self.compile_expression(statement.right_side_expression);
-                if let Some(expression) = statement.left_side_expression {
-                    unimplemented!()
-                }
                 let entry = self
                     .symbol_table
                     .get(&statement.var_name)
                     .expect("Variables must be declared before they are assigned");
-                self.vm_writer
-                    .write_pop(Segment::from(entry.kind), entry.index);
+                let entry_kind = entry.kind;
+                let entry_index = entry.index;
+
+                // If the statement has an array access expression on the left side
+                if let Some(expression) = statement.left_side_expression {
+                    self.vm_writer
+                        .write_push(Segment::from(entry_kind), entry_index);
+                    self.compile_expression(expression);
+                    self.vm_writer.write_arithmetic(ArithmeticCommand::Add);
+                    self.compile_expression(statement.right_side_expression);
+                    self.vm_writer.write_pop(Segment::Temp, 0);
+                    self.vm_writer.write_pop(Segment::Pointer, 1);
+                    self.vm_writer.write_push(Segment::Temp, 0);
+                    self.vm_writer.write_pop(Segment::That, 0);
+                } else {
+                    self.compile_expression(statement.right_side_expression);
+                    self.vm_writer
+                        .write_pop(Segment::from(entry_kind), entry_index);
+                }
             }
             Statement::Return(statement) => {
                 if let Some(expression) = statement.0 {
@@ -216,11 +229,8 @@ impl CodeGenerator {
                 Op::LessThan => self.vm_writer.write_arithmetic(ArithmeticCommand::Lt),
                 Op::Ampersand => self.vm_writer.write_arithmetic(ArithmeticCommand::And),
                 Op::Equals => self.vm_writer.write_arithmetic(ArithmeticCommand::Eq),
-
-                _ => {
-                    dbg!(op);
-                    unimplemented!()
-                }
+                Op::Slash => self.vm_writer.write_call("Math.divide", 2),
+                Op::VerticalBar => self.vm_writer.write_arithmetic(ArithmeticCommand::Or),
             };
         }
     }
@@ -256,6 +266,43 @@ impl CodeGenerator {
                     .write_push(Segment::from(entry.kind), entry.index);
             }
             Term::SubroutineCall(subroutine_call) => self.compile_subroutine_call(subroutine_call),
+            Term::StringConstant(string) => {
+                // Create the string
+                self.vm_writer.write_push(
+                    Segment::Const,
+                    string
+                        .len()
+                        .try_into()
+                        .expect("String constant length exceeds u16 size"),
+                );
+                self.vm_writer.write_call("String.new", 1);
+                self.vm_writer.write_pop(Segment::Temp, 0);
+
+                // Append each character
+                for c in string.chars() {
+                    self.vm_writer.write_push(Segment::Temp, 0);
+                    self.vm_writer.write_push(
+                        Segment::Const,
+                        u32::from(c)
+                            .try_into()
+                            .expect(&format!("Character {} is outside the range of u16", c)),
+                    );
+                    // TODO is this the write function signature?
+                    self.vm_writer.write_call("String.appendChar", 2);
+                }
+            }
+            Term::VarNameExpression((var_name, expression)) => {
+                let entry = self
+                    .symbol_table
+                    .get(&var_name)
+                    .expect(&format!("Unknown variable: {}", var_name));
+                self.vm_writer
+                    .write_push(Segment::from(entry.kind), entry.index);
+                self.compile_expression(*expression);
+                self.vm_writer.write_arithmetic(ArithmeticCommand::Add);
+                self.vm_writer.write_pop(Segment::Pointer, 0);
+                self.vm_writer.write_push(Segment::That, 0);
+            }
             _ => {
                 println!("{:?}", term);
                 unimplemented!()
