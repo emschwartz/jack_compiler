@@ -1,6 +1,6 @@
+use super::symbol_table::VarKind;
 use std::iter::IntoIterator;
 use std::vec::IntoIter;
-use super::symbol_table::VarKind;
 pub enum Segment {
     Const,
     Arg,
@@ -20,7 +20,6 @@ impl From<VarKind> for Segment {
             VarKind::Arg => Segment::Arg,
             VarKind::Var => Segment::Local,
         }
-
     }
 }
 

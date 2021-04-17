@@ -1,5 +1,5 @@
 pub use crate::parser::VarType;
-use std::{collections::HashMap, convert::TryInto};
+use std::collections::HashMap;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum VarKind {
@@ -93,13 +93,13 @@ impl SymbolTable {
         }
     }
 
-    pub fn var_count(&self, kind: VarKind) -> usize {
+    pub fn var_count(&self, kind: VarKind) -> u16 {
         match kind {
             VarKind::Static => self.num_statics,
             VarKind::Field => self.num_fields,
             VarKind::Arg => self.num_args,
             VarKind::Var => self.num_vars,
-        }.try_into().expect("Var count exceeds u16 max")
+        }
     }
 
     pub fn get(&self, name: &str) -> Option<&SymbolEntry> {
