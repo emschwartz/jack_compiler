@@ -1,6 +1,7 @@
 use super::symbol_table::VarKind;
 use std::iter::IntoIterator;
 use std::vec::IntoIter;
+
 pub enum Segment {
     Const,
     Arg,
