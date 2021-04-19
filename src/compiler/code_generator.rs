@@ -309,7 +309,7 @@ impl CodeGenerator {
                     .write_push(Segment::from(entry.kind), entry.index);
                 self.compile_expression(*expression);
                 self.vm_writer.write_arithmetic(ArithmeticCommand::Add);
-                self.vm_writer.write_pop(Segment::Pointer, 0);
+                self.vm_writer.write_pop(Segment::Pointer, 1);
                 self.vm_writer.write_push(Segment::That, 0);
             }
         }
