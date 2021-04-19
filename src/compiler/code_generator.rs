@@ -55,6 +55,15 @@ impl CodeGenerator {
         self.symbol_table.start_subroutine();
         let class_name = self.class_name.to_owned().unwrap();
 
+        // Methods are called with `this` as the first argument
+        if subroutine.subroutine_type == SubroutineType::Method {
+            self.symbol_table.define(
+                "this".to_string(),
+                VarType::ClassName(class_name.to_string()),
+                VarKind::Arg,
+            );
+        }
+
         // Add arguments to symbol table
         for (arg_type, arg_name) in subroutine.parameter_list {
             self.symbol_table
@@ -302,10 +311,6 @@ impl CodeGenerator {
                 self.vm_writer.write_arithmetic(ArithmeticCommand::Add);
                 self.vm_writer.write_pop(Segment::Pointer, 0);
                 self.vm_writer.write_push(Segment::That, 0);
-            }
-            _ => {
-                println!("{:?}", term);
-                unimplemented!()
             }
         }
     }
